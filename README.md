@@ -29,8 +29,6 @@
 
 ## Como executar
 
-### Iniciando a aplicação
-
 Para cada parte do projeto (**P[0-1]**) haverá um *README.md* com as devidas instruções para execução de cada etapa.
 
 ## Desenvolvedor
