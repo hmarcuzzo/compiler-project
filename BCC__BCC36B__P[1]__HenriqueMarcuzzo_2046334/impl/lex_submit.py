@@ -16,14 +16,22 @@ def main():
 
     lexer.input(source_file)
 
+    if len(argv) > 2 and argv[2] == 'detailed':
+        print_mode = argv[2]
+    else:
+        print_mode = 'simple'
+
     # Tokenize
     while True:
         tok = lexer.token()
         if not tok:
             break  # No more input
-        print(tok)
-        # print(tok.type)
-        # print(tok.value)
+
+        if print_mode == 'detailed':
+            print(tok)
+        else:
+            print(tok.type)
+
 
 if __name__ == "__main__":
     main()

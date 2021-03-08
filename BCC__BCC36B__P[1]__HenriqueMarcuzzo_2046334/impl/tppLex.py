@@ -111,17 +111,14 @@ class tppLex():
 
     def t_NUM_NOTACAO_CIENTIFICA(self,token):
         r"([+-]?[\d].[\d]+[eE][+-]?[\d]+)|([+-]?[\d][eE][+-]?[\d]+)"
-        # token.value = float(token.value)    
         return token
 
     def t_NUM_PONTO_FLUTUANTE(self,token):
-        r"[+-]?[\d].[\d]"
-        # token.value = float(token.value)    
+        r"[+-]?[\d]+.[\d]+"
         return token
 
     def t_NUM_INTEIRO(self,token):
         r"[+-]?[\d]+"
-        # token.value = int(token.value)    
         return token
 
     # Regra para contar o número de linhas 
@@ -135,6 +132,7 @@ class tppLex():
     # Tratamento de erro
     def t_error(self,token):
         print("Caractere inválido '%s'" % token.value[0])
+        token.lexer.skip(1) # segue o código quando encontra caracter ilegal
 
     # Build the lexer.
     def build(self,**kwargs):
