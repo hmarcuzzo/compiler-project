@@ -17,7 +17,7 @@ Dentro da pasta ***impl*** execute:
 ```
 python3 lex_submit.py code.tpp
 ```
-* ***code.tpp***: códito tpp que será submetido para análise léxica.
+* ***code.tpp***: código tpp que será submetido para análise léxica.
 
 
 Note que na pasta ```~/impl/testes_lexico/``` existem alguns arquivos ```.tpp``` para submeter ao código como exemplos.
