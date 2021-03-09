@@ -36,3 +36,5 @@ Note que na pasta ```~/impl/testes_lexico/``` e ```~/impl/testes_automatizado/``
 sh run-tests.sh ../lex_submit.py
 ```
 
+* Note que a saida esperada está nos arquivos ```.out```, e caso ocorra erros de saida será escrito nos arquivos ```.diff```
+
