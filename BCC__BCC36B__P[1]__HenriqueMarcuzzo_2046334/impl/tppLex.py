@@ -19,27 +19,27 @@ class tppLex():
         "NUM_INTEIRO",  # inteiro
 
         # operadores binarios
-        "ADICAO",  # +
-        "SUBTRACAO",  # -
+        "MAIS",  # +
+        "MENOS",  # -
         "MULTIPLICACAO",  # *
         "DIVISAO",  # /
         "E_LOGICO",  # &&
         "OU_LOGICO",  # ||
-        "DIFERENCA",  # <>
+        "DIFERENTE",  # <>
         "MENOR_IGUAL",  # <=
         "MAIOR_IGUAL",  # >=
         "MENOR",  # <
         "MAIOR",  # >
-        "IGUALDADE",  # =
+        "   ",  # =
 
         # operadores unarios
         "NEGACAO",  # !
 
         # simbolos
-        "ABRE_PAR",  # (
-        "FECHA_PAR",  # )
-        "ABRE_COL",  # [
-        "FECHA_COL",  # ]
+        "ABRE_PARENTESE",  # (
+        "FECHA_PARENTESE",  # )
+        "ABRE_COLCHETE",  # [
+        "FECHA_COLCHETE",  # ]
         "VIRGULA",  # ,
         "DOIS_PONTOS",  # :
         "ATRIBUICAO",  # :=
@@ -65,14 +65,14 @@ class tppLex():
 
     # Expressões Regulares para tokens simples:
     # Símbolos.
-    t_ADICAO = r'\+'
-    t_SUBTRACAO = r'-'
+    t_MAIS = r'\+'
+    t_MENOS = r'-'
     t_MULTIPLICACAO = r'\*'
     t_DIVISAO = r'/'
-    t_ABRE_PAR = r'\('
-    t_FECHA_PAR = r'\)'
-    t_ABRE_COL = r'\['
-    t_FECHA_COL = r'\]'
+    t_ABRE_PARENTESE = r'\('
+    t_FECHA_PARENTESE = r'\)'
+    t_ABRE_COLCHETE = r'\['
+    t_FECHA_COLCHETE = r'\]'
     t_VIRGULA = r','
     t_ATRIBUICAO = r':='
     t_DOIS_PONTOS = r':'
@@ -83,12 +83,12 @@ class tppLex():
     t_NEGACAO = r'!'
 
     # Operadores Relacionais.
-    t_DIFERENCA = r'<>'
+    t_DIFERENTE = r'<>'
     t_MENOR_IGUAL = r'<='
     t_MAIOR_IGUAL = r'>='
     t_MENOR = r'<'
     t_MAIOR = r'>'
-    t_IGUALDADE = r'='
+    t_IGUAL = r'='
     
     # Outras Expressões Regulares
     id = (
@@ -110,11 +110,11 @@ class tppLex():
         return token
 
     def t_NUM_NOTACAO_CIENTIFICA(self,token):
-        r"([+-]?[\d].[\d]+[eE][+-]?[\d]+)|([+-]?[\d][eE][+-]?[\d]+)"
+        r"([+-]?[\d]\.[\d]+[eE][+-]?[\d]+)|([+-]?[\d][eE][+-]?[\d]+)"
         return token
 
     def t_NUM_PONTO_FLUTUANTE(self,token):
-        r"[+-]?[\d]+.[\d]+"
+        r"[+-]?[\d]*\.[\d]*"
         return token
 
     def t_NUM_INTEIRO(self,token):
@@ -131,7 +131,7 @@ class tppLex():
 
     # Tratamento de erro
     def t_error(self,token):
-        print("Caractere inválido '%s'" % token.value[0])
+        print("Caracter inválido '%s'" % token.value[0])
         token.lexer.skip(1) # segue o código quando encontra caracter ilegal
 
     # Build the lexer.
