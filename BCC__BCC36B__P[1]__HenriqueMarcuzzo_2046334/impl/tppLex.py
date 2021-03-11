@@ -30,7 +30,7 @@ class tppLex():
         "MAIOR_IGUAL",  # >=
         "MENOR",  # <
         "MAIOR",  # >
-        "   ",  # =
+        "IGUAL",  # =
 
         # operadores unarios
         "NEGACAO",  # !
@@ -110,15 +110,15 @@ class tppLex():
         return token
 
     def t_NUM_NOTACAO_CIENTIFICA(self,token):
-        r"([+-]?[\d]\.[\d]+[eE][+-]?[\d]+)|([+-]?[\d][eE][+-]?[\d]+)"
+        r"([\d]\.[\d]*[eE][+-]?[\d]+)|([\d][eE][+-]?[\d]+)"
         return token
 
     def t_NUM_PONTO_FLUTUANTE(self,token):
-        r"[+-]?[\d]*\.[\d]*"
+        r"([\d]+\.[\d]*)|([\d]*\.[\d]+)"
         return token
 
     def t_NUM_INTEIRO(self,token):
-        r"[+-]?[\d]+"
+        r"[\d]+"
         return token
 
     # Regra para contar o número de linhas 

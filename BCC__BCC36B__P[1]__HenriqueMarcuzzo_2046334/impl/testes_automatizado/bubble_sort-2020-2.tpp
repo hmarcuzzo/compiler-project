@@ -34,6 +34,5 @@ inteiro principal()
     até i = 0
 
     bubbleSort(20)
-    
 fim
 
