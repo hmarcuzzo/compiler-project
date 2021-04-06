@@ -1,7 +1,15 @@
 import ply.lex as lex
+import logging
 
 from ply.lex import TOKEN
 
+logging.basicConfig(
+     level = logging.DEBUG,
+     filename = "lex.log",
+     filemode = "w",
+     format = "%(filename)10s:%(lineno)4d:%(message)s"
+)
+log = logging.getLogger()
 
 class tppLex():
 
@@ -21,10 +29,10 @@ class tppLex():
         # operadores binarios
         "MAIS",  # +
         "MENOS",  # -
-        "MULTIPLICACAO",  # *
-        "DIVISAO",  # /
-        "E_LOGICO",  # &&
-        "OU_LOGICO",  # ||
+        "VEZES",  # *
+        "DIVIDE",  # /
+        "E",  # &&
+        "OU",  # ||
         "DIFERENTE",  # <>
         "MENOR_IGUAL",  # <=
         "MAIOR_IGUAL",  # >=
@@ -33,7 +41,7 @@ class tppLex():
         "IGUAL",  # =
 
         # operadores unarios
-        "NEGACAO",  # !
+        "NAO",  # !
 
         # simbolos
         "ABRE_PARENTESE",  # (
@@ -67,8 +75,8 @@ class tppLex():
     # Símbolos.
     t_MAIS = r'\+'
     t_MENOS = r'-'
-    t_MULTIPLICACAO = r'\*'
-    t_DIVISAO = r'/'
+    t_VEZES = r'\*'
+    t_DIVIDE = r'/'
     t_ABRE_PARENTESE = r'\('
     t_FECHA_PARENTESE = r'\)'
     t_ABRE_COLCHETE = r'\['
@@ -78,9 +86,9 @@ class tppLex():
     t_DOIS_PONTOS = r':'
 
     # Operadores Lógicos.
-    t_E_LOGICO = r'&&'
-    t_OU_LOGICO = r'\|\|'
-    t_NEGACAO = r'!'
+    t_E = r'&&'
+    t_OU = r'\|\|'
+    t_NAO = r'!'
 
     # Operadores Relacionais.
     t_DIFERENTE = r'<>'

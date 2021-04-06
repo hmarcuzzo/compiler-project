@@ -22,7 +22,7 @@ inteiro principal()
   a := 10 + 2
   leia(x)
   leia(w)
-  w := .6 + 1.
+  w := 0.6 + 1.0
   func2(1, 2.5)
   b := func1(x,w)
   escreva(b)
