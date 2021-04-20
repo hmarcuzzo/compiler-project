@@ -6,8 +6,8 @@ init()
     inteiro: i
     i := 1
     repita
-        a[i] = 1
-        b[i] = 1
+        a[i] := 1
+        b[i] := 1
         i := i + 1
     até i = 1024
 fim
