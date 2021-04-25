@@ -58,16 +58,20 @@ def find_all_filter_nodes(node, label, father_label, list_node):
     return all_nodes
 
 
-def get_call_var(node, line):
+def get_call_var(node, line, add=True):
     call_name_list = find_all_nodes(node, list(), 'ID')
-
+    exist = False
     for call_name in call_name_list:
         if call_name.children[0].label in var_list:
-            var_list[call_name.children[0].label][-1][-1].append((line, node))
+            if add:
+                var_list[call_name.children[0].label][-1][-1].append((line, node))
+            exist = True
         else:
             if call_name.anchestors[-1].label != 'chamada_funcao':
                 message = ('ERROR', f'Erro: Variável "{call_name.children[0].label}" não declarada.')
                 message_list.append(message)
+
+    return exist
 
 
 def get_call_func(node, line, p):
@@ -663,6 +667,9 @@ def p_leia(p):
     filho4 = MyNode(name='fecha_parentese', type='FECHA_PARENTESE', parent=pai)
     filho_sym4 = MyNode(name=')', type='SIMBOLO', parent=filho4)
     p[4] = filho4
+
+    line = p.lineno(2)
+    get_call_var(p.slice[0].value, line, False)
 
 
 def p_leia_error(p):

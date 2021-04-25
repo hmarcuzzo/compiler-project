@@ -1,36 +1,13 @@
 import sys
+import numpy as np
+
 from tabulate import tabulate
+from anytree import Node, RenderTree
+from anytree.exporter import UniqueDotExporter
 
 sys.path.append('../../BCC__BCC36B__P[2]__HenriqueMarcuzzo_2046334/impl/')
 
 import tppSintatic
-import SimbolTable
-
-# GLOBAL
-variable_table_list = list()
-funcion_table_list = list()
-escope = 'global'
-
-
-# OLD
-
-def find_node(node, label):
-    exist = False
-
-    if node is None:
-        return exist, None
-
-    for sun in node.children:
-        exist, return_node = find_node(sun, label)
-
-        if sun.label == label:
-            exist = True
-            return_node = sun
-
-        if exist:
-            return exist, return_node
-
-    return exist, None
 
 
 def find_all_nodes(root, label, list_node):
@@ -42,101 +19,62 @@ def find_all_nodes(root, label, list_node):
     return list_node
 
 
-def find_all_filter_nodes(root, label, father_label, list_node):
-    all_nodes = find_all_nodes(root, label, list_node)
+def find_all_father_nodes(sun, label, list_node):
+    for index in range(len(sun.anchestors)-1, -1, -1):
+        if sun.anchestors[index].label == label:
+            list_node.append(sun.anchestors[index])
 
-    i = 0
-    len_list = len(all_nodes)
-
-    while i < len_list:
-        if all_nodes[i].ancestors[-1].label != father_label:
-            all_nodes.pop(i)
-
-            len_list -= 1
-            i -= 1
-
-        i += 1
-
-    return all_nodes
+    return list_node
 
 
-def find_father(sun, label_father):
-    if sun is None:
-        return None
+def find_all_parameters_sent(root, escope, list_node):
 
-    for node in sun.ancestors:
-        if node.label == label_father:
-            return node
-        father_node = find_father(node, label_father)
-
-        if father_node is not None and father_node.label == label_father:
-            return father_node
-
-    return None
-
-
-def get_func_type(node):
-    type_func = node.children[0].children[0].children[0]
-
-    if type_func.label != 'inteiro' and type_func.label != 'inteiro':
-        type_func.label = 'vazio'
-
-    return type_func
-
-
-def find_func(root, name_func):
-    all_nodes = find_all_nodes(root, 'declaracao_funcao', list())
-    list_func_with_same_name = list()
-    for node in all_nodes:
-        exist, return_node = find_node(node, name_func)
-
-        if exist:
-            list_func_with_same_name.append(node)
-
-    return list_func_with_same_name
-
-
-def has_principal(root):
-    principal_nodes = find_func(root, 'principal')
-
-    if len(principal_nodes) < 1:
-        message = ('ERROR', 'Erro: Função principal não declarada.')
-        message_list.append(message)
-    elif len(principal_nodes) == 1:
-        type_func = get_func_type(principal_nodes[0]).label
-        all_retorna_nodes = find_all_filter_nodes(principal_nodes[0], 'retorna', 'acao', list())
-
-        if len(all_retorna_nodes) < 1:
-            message = ('ERROR', f'Erro: Função principal deveria retornar {type_func}, mas retorna vazio.')
-            message_list.append(message)
-        else:
-            for node in all_retorna_nodes:
-                if type_func == 'inteiro':
-                    all_wrong_type = find_all_nodes(node, 'NUM_PONTO_FLUTUANTE', list())
-                else:
-                    all_wrong_type = find_all_nodes(node, 'NUM_INTEIRO', list())
-
-                if len(all_wrong_type) > 0:
-                    message = (
-                    'ERROR', f'Erro: Função principal deveria retornar apenas {type_func}, mas retorna outro tipo.')
-                    message_list.append(message)
-                    return
-
-            return principal_nodes[0]
-
-
-def identifie_all_functions(root):
     for node in root.children:
-        identifie_all_functions(node)
+        if node.label == 'chamada_funcao':
+            func_name = node.descendants[1].label
+            type_func = func_list[func_name][0][1]
+            list_node.append((func_name, type_func))
+            return list_node
+        elif node.label == 'ID':
+            var_name = node.children[0].label
+            type_var = ''
+            for var in var_list[var_name]:
+                if var[4] == escope:
+                    type_var = var[1]
+                    break
 
-        if node.label == 'declaracao_funcao':
-            name_func = find_node(node, 'ID')[-1].children[0].label
-            type_func = get_func_type(node).label
-            # parameter_func =
-            print(type_func)
+            if type_var == '':
+                for var in var_list[var_name]:
+                    if var[4] == 'global':
+                        type_var = var[1]
+                        break
+
+            list_node.append((var_name, type_var))
+            return list_node
+        elif node.label == 'numero':
+            type_num = node.children[0].label
+
+            if type_num == 'NUM_INTEIRO':
+                num = int(node.descendants[1].label)
+                type_num = 'inteiro'
+            else:
+                type_num = 'flutuante'
+                num = float(node.descendants[1].label)
+
+            list_node.append((num, type_num))
+            return list_node
+
+        list_node = find_all_parameters_sent(node, escope, list_node)
+
+    return list_node
 
 
-## NEW
+def get_func_called(line, func_list):
+    for element in func_list:
+        for func in func_list[element]:
+            if func[5] <= line < func[6]:
+                return func[0]
+
 
 def clean_tuple(lst):
     return [t for t in (set(tuple(i) for i in lst))]
@@ -184,8 +122,311 @@ def generate_table_var(list, header, list_index):
     return table
 
 
+def check_principal(func_list, message_list):
+    if 'principal' not in func_list or not func_list['principal'][0][7]:
+        message = (
+            'ERROR', f'Erro: Função principal não declarada.')
+        message_list.append(message)
+    else:
+        line_start = func_list['principal'][0][5]
+        line_end = func_list['principal'][0][6]
+
+        for call in func_list['principal'][0][-1]:
+            if not line_start <= call[0] < line_end:
+                message = (
+                    'ERROR', f'Erro: Chamada para a função principal não permitida.')
+                message_list.append(message)
+
+
+def check_return_of_all_functions(func_list, message_list):
+    message = ''
+    for element in func_list:
+        for func in func_list[element]:
+            type_func = func[1]
+
+            return_types = list()
+            for type_return in func[4]:
+                return_types.append(type_return[0])
+
+            return_types = list(set(return_types))
+
+            if type_func == 'vazio':
+                if len(return_types) > 0:
+                    if len(return_types) > 1:
+                        message = ('ERROR',
+                                   f'Erro: Função {element} deveria retornar vazio, mas retorna {return_types[0]} e {return_types[1]}.')
+                    else:
+                        message = ('ERROR',
+                                   f'Erro: Função {element} deveria retornar vazio, mas retorna {return_types[0]}.')
+            elif type_func == 'inteiro':
+                if len(return_types) == 0:
+                    message = ('ERROR',
+                               f'Erro: Função {element} deveria retornar inteiro, mas retorna vazio.')
+                else:
+                    for type_return in return_types:
+                        if type_return != 'inteiro' and type_return != 'ERROR':
+                            message = ('ERROR',
+                                       f'Erro: Função {element} deveria retornar inteiro, mas retorna flutuante.')
+                            break
+            elif type_func == 'flutuante':
+                if len(return_types) == 0:
+                    message = ('ERROR',
+                               f'Erro: Função {element} deveria retornar flutuante, mas retorna vazio.')
+                else:
+                    for type_return in return_types:
+                        if type_return != 'flutuante' and type_return != 'ERROR':
+                            message = ('ERROR',
+                                       f'Erro: Função {element} deveria retornar flutuante, mas retorna inteiro.')
+                            break
+
+            if message != '':
+                message_list.append(message)
+
+
+def check_call_of_all_functions(func_list, message_list):
+    message = ''
+    for element in func_list:
+        for func in func_list[element]:
+            if not func[-2]:
+                message = ('ERROR',
+                           f'Erro: Chamada a função {element} que não foi declarada.')
+                message_list.append(message)
+
+            else:
+                if len(func[-1]) == 0 and element != 'principal':
+                    message = ('WARNING',
+                               f'Aviso: Função {element} declarada, mas não utilizada.')
+                    message_list.append(message)
+                else:
+                    calls = 0
+                    recursion = 0
+                    for call_func in func[-1]:
+                        func_called = get_func_called(call_func[0], func_list)
+                        if func_called != element:
+                            calls += 1
+                        else:
+                            recursion += 1
+
+                    if element == 'principal':
+                        calls += 1
+
+                    if calls == 0:
+                        message = ('WARNING',
+                                   f'Aviso: Função {element} declarada, mas não utilizada.')
+                        message_list.append(message)
+
+                    elif recursion > 0:
+                        message = ('WARNING',
+                                   f'Aviso: Chamada recursiva para {element}.')
+                        message_list.append(message)
+
+                for call in func[-1]:
+                    list_parameters = find_all_parameters_sent(call[1].children[2], func[0], list())
+
+                    if len(list_parameters) > func[2]:
+                        message = ('ERROR',
+                                   f'Erro: Chamada à função {func[0]} com número de parâmetros maior que o declarado.')
+                        message_list.append(message)
+                    elif len(list_parameters) < func[2]:
+                        message = ('ERROR',
+                                   f'Erro: Chamada à função {func[0]} com número de parâmetros menor que o declarado.')
+                        message_list.append(message)
+                    else:
+                        parameters = []
+                        for func in func_list[call[1].descendants[1].label]:
+                            for var_func in func[3]:
+                                for index in range(len(var_list[var_func])):
+                                    if var_list[var_func][index][4] == call[1].descendants[1].label:
+                                        parameters.append((var_list[var_func][index][0], var_list[var_func][index][1]))
+                                        break
+
+                        for index in range(len(parameters)):
+                            type_index = list_parameters[index][1]
+                            if type_index == 'NUM_PONTO_FLUTUANTE':
+                                type_index = 'flutuante'
+                            else:
+                                type_index = 'inteiro'
+                            if parameters[index][1] != type_index:
+                                message = ('WARNING',
+                                           f'Aviso: Coerção implícita do valor passado para váriavel ' +
+                                           f'‘{parameters[index][0]}‘ da função ‘{call[1].descendants[1].label}’.')
+                                message_list.append(message)
+
+
+def check_call_of_all_variables(var_list, message_list, root):
+    all_leia_node = find_all_nodes(root, 'LEIA', list())
+
+    for index in range(len(all_leia_node)):
+        all_leia_node[index] = all_leia_node[index].anchestors[-1]
+        escope_read = find_all_father_nodes(all_leia_node[index], 'cabecalho', list())[0].descendants[1].label
+        id_read = find_all_nodes(all_leia_node[index], 'ID', list())[0].children[0].label
+
+        for var in var_list[id_read]:
+            found = False
+            if var[4] == escope_read:
+                found = True
+                if len(var[-1]) == 0:
+                    message = ('WARNING',
+                               f'Aviso: Variável ‘{id_read}’ declarada e não inicializada. ')
+                    message_list.append(message)
+
+            if not found:
+                for var in var_list[id_read]:
+                    if var[4] == 'global':
+                        if len(var[-1]) == 0:
+                            message = ('WARNING',
+                                       f'Aviso: Variável ‘{id_read}’ declarada e não inicializada. ')
+                            message_list.append(message)
+
+    for element in var_list:
+        for var in var_list[element]:
+            if len(var[-1]) == 0:
+                message = ('WARNING',
+                           f'Aviso: Variável ‘{var[0]}’ declarada e não inicializada. ')
+                message_list.append(message)
+
+
+def check_all_atribuicao_type(var_list, message_list, root):
+    all_atribuicao_node = find_all_nodes(root, 'atribuicao', list())
+
+    for index in range(len(all_atribuicao_node)):
+        try:
+            escope_read = find_all_father_nodes(all_atribuicao_node[index], 'cabecalho', list())[0].descendants[1].label
+        except:
+            escope_read = 'global'
+
+        # id_left = all_atribuicao_node[index].descendants[2].label
+        right_side = find_all_parameters_sent(all_atribuicao_node[index], escope_read, list())
+        left_side = right_side.pop(0)
+
+        diferent_expression_type = False
+        for unique_right in right_side:
+            if unique_right[1] != left_side[1]:
+
+                diferent_expression_type = unique_right[1]
+                message = ('WARNING',
+                           f'Aviso: Coerção implícita do valor de ‘{unique_right[0]}’.')
+                message_list.append(message)
+
+        if diferent_expression_type and diferent_expression_type != left_side[1]:
+            message = ('WARNING',
+                       f'Aviso: Atribuição de tipos distintos ‘{left_side[0]}’ {left_side[1]} e ‘expressão’ {diferent_expression_type}')
+            message_list.append(message)
+
+
+def check_all_var_array(var_list, message_list):
+    for element in var_list:
+        for var in var_list[element]:
+            if var[2] != 0:
+                for dimension in var[3]:
+                    dimension_number = 0
+                    if dimension[1] != 'NUM_INTEIRO':
+                        dimension_number = float(dimension[0])
+                        message = ('ERROR',
+                                   f'Erro: Índice de array ‘{var[0]}’ não inteiro.')
+                        message_list.append(message)
+                    else:
+                        dimension_number = int(dimension[0])
+                for call in var[-1]:
+                    numero = find_all_nodes(call[1].descendants[3], 'numero', list())
+                    if len(find_all_nodes(numero[0], 'NUM_PONTO_FLUTUANTE', list())) > 0:
+                        message = ('ERROR',
+                                   f'Erro: Índice de array ‘{var[0]}’ não inteiro.')
+                        message_list.append(message)
+                    else:
+                        numero = int(numero[0].descendants[-1].label)
+                        if numero > dimension_number - 1:
+                            message = ('ERROR',
+                                       f'Erro: Índice de array ‘{var[0]}’ fora do intervalo (out of range).')
+                            message_list.append(message)
+
+
+def do_all_semantic_check(func_list, var_list, message_list, func_table, var_table, root):
+    check_principal(func_list, message_list)
+    check_return_of_all_functions(func_list, message_list)
+    check_call_of_all_functions(func_list, message_list)
+    check_call_of_all_variables(var_list, message_list, root)
+    check_all_atribuicao_type(var_list, message_list, root)
+    check_all_var_array(var_list, message_list)
+
+
+def poda_arvore(root, labels):
+    for node in root.children:
+        poda_arvore(node, labels)
+
+    if root.label in labels:
+        dad = root.parent
+        aux = []
+        for children in dad.children:
+            if children != root:
+                aux.append(children)
+        for children in root.children:
+            aux.append(children)
+        root.children = aux
+        dad.children = aux
+
+    if root.label == 'declaracao_funcao':
+        corpo = root.children[1]
+        aux = []
+        for children in root.children:
+            if children.label == 'fim':
+                aux.append(corpo)
+            if children != corpo:
+                aux.append(children)
+        root.children = aux
+
+    if root.label == 'corpo' and len(root.children) == 0:
+        dad = root.parent
+        aux = []
+        for children in dad.children:
+            if children != root:
+                aux.append(children)
+        for children in root.children:
+            aux.append(children)
+        root.children = aux
+        dad.children = aux
+
+def ajusta_arvore(root, labels_ajuste):
+    for node in root.children:
+        ajusta_arvore(node, labels_ajuste)
+
+    dad = root.parent
+    aux = []
+
+    if root.label == 'leia' or root.label == 'escreva' or root.label == 'retorna':
+        if len(root.children) == 0:
+            for children in dad.children:
+                if children != root:
+                    aux.append(children)
+
+            dad.children = aux
+
+    if root.label in labels_ajuste:
+        if root.label == ':=':
+            for children in dad.children:
+                if children != root:
+                    aux.append(children)
+
+            root.children = aux
+            dad.children = [root]
+        else:
+            dad_aux = []
+            for index in range(len(dad.children)):
+                if dad.children[index] == root:
+                    aux.append(dad.children[index - 1])
+                    aux.append(dad.children[index + 1])
+
+                    for j in range(len(dad.children)):
+                        if j != index or j != index - 1 or j != index + 1:
+                            dad_aux.append(dad.children[j])
+                        if j == index:
+                            dad_aux.append(root)
+
+            root.children = aux
+
+
 def main():
-    global func_list, var_list, message_list
+    global root, func_list, var_list, message_list
 
     root, func_list, var_list, message_list = tppSintatic.main()
 
@@ -218,17 +459,43 @@ def main():
     func_table = generate_table_func(func_list, ['Nome', 'Tipo', 'Num. Parâmetros', 'Parâmetros', 'Init',
                                                  'Linha Inicial', 'Linha Final'], [0, 1, 2, 3, 7, 5, 6])
 
-    var_list = generate_table_var(var_list, ['Nome', 'Tipo', 'Dimensões', 'Tamanho Dimensões', 'Escopo', 'Linha'],
+    var_table = generate_table_var(var_list, ['Nome', 'Tipo', 'Dimensões', 'Tamanho Dimensões', 'Escopo', 'Linha'],
                                    [0, 1, 2, 3, 4, 5])
 
     print(f'TABELA DE FUNÇÕES:\n{tabulate(func_table, headers="firstrow", tablefmt="fancy_grid")}')
     print('\n\n')
-    print(f'TABELA DE VARIÁVEIS:\n{tabulate(var_list, headers="firstrow", tablefmt="fancy_grid")}')
+    print(f'TABELA DE VARIÁVEIS:\n{tabulate(var_table, headers="firstrow", tablefmt="fancy_grid")}')
     print('\n\n')
 
+    do_all_semantic_check(func_list, var_list, message_list, func_table, var_table, root)
+
+    erros = 0
     message_list = clean_tuple(message_list)
     for message in message_list:
         print(message[-1])
+        if message[0] == 'ERROR':
+            erros += 1
+
+
+    print('\n\n')
+    # if erros == 0:
+    label_remove_nodes = ['ID', 'var', 'lista_variaveis', 'dois_pontos', 'tipo',
+                        'INTEIRO', 'FLUTUANTE', 'NUM_INTEIRO', 'NUM_PONTO_FLUTUANTE',
+                        'NUM_NOTACAO_CIENTIFICA', 'LEIA', 'abre_parentese', 'fecha_parentese',
+                        'lista_declaracoes', 'declaracao', 'indice', 'numero', 'fator',
+                        'abre_colchete', 'fecha_colchete', 'expressao', 'expressao_logica',
+                        'expressao_simples', 'expressao_aditiva', 'expressao_multiplicativa',
+                        'expressao_unaria', 'inicializacao_variaveis', 'ATRIBUICAO', 'atribuicao',
+                        'operador_soma', 'mais', 'chamada_funcao', 'lista_argumentos', 'VIRGULA',
+                        'virgula', 'fator', 'cabecalho', 'FIM', 'lista_parametros', 'vazio',
+                        '(', ')', ':', ',', 'RETORNA', 'ESCREVA']
+    labels_ajuste = [':=', '+', '*', '-', '/']
+    poda_arvore(root, label_remove_nodes)
+    ajusta_arvore(root, labels_ajuste)
+    UniqueDotExporter(root).to_picture(f"{sys.argv[1]}.cut.unique.ast.png")
+    print(f"Poda da árvore gerada\nArquivo de destino: {sys.argv[1]}.cut.unique.ast.png")
+    # else:
+    #     print(f"Não foi possível gerar a árvore abstrata, devido a erros semânticos")
 
 
 if __name__ == '__main__':
