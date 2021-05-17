@@ -154,27 +154,29 @@ def p_declaracao_variaveis(p):
 
     p[3].parent = pai
 
-    name_var = find_all_nodes(p.slice[-1].value, list(), 'ID')[0].children[0].label
-    type_var = p.slice[1].value.children[0].children[0].label
+    nodes_var = find_all_nodes(p.slice[-1].value, list(), 'ID')
+    for node_var in nodes_var:
+        name_var = node_var.children[0].label
+        type_var = p.slice[1].value.children[0].children[0].label
 
-    dimensions = find_all_nodes(p.slice[-1].value, list(), 'expressao')
-    dimension_name = []
+        dimensions = find_all_nodes(p.slice[-1].value, list(), 'expressao')
+        dimension_name = []
 
-    if len(dimensions) > 0:
-        for sun in dimensions:
-            aux = find_all_nodes(sun, list(), 'numero')
+        if len(dimensions) > 0:
+            for sun in dimensions:
+                aux = find_all_nodes(sun, list(), 'numero')
 
-            if len(aux) == 0:
-                aux = find_all_nodes(sun, list(), 'var')
+                if len(aux) == 0:
+                    aux = find_all_nodes(sun, list(), 'var')
 
-            dimension_name.append((aux[-1].children[-1].children[-1].label, aux[-1].children[-1].label))
+                dimension_name.append((aux[-1].children[-1].children[-1].label, aux[-1].children[-1].label))
 
-    if name_var in var_list:
-        message = ('WARNING', f'Aviso: Variável "{name_var}" já declarada anteriormente.')
-        message_list.append(message)
-        var_list[name_var].append([name_var, type_var, len(dimensions), dimension_name, escopo, p.lineno(2), list()])
-    else:
-        var_list[name_var] = [[name_var, type_var, len(dimensions), dimension_name, escopo, p.lineno(2), list()]]
+        if name_var in var_list:
+            # message = ('WARNING', f'Aviso: Variável "{name_var}" já declarada anteriormente.')
+            # message_list.append(message)
+            var_list[name_var].append([name_var, type_var, len(dimensions), dimension_name, escopo, p.lineno(2), list()])
+        else:
+            var_list[name_var] = [[name_var, type_var, len(dimensions), dimension_name, escopo, p.lineno(2), list()]]
 
 
 # Sub-árvore.
@@ -494,7 +496,10 @@ def p_parametro_error(p):
 
     print("Erro na definicao do parâmetro. Tipo ou parâmetro.")
 
-    print(f"Erro:p[0]:{p[0]}, p[1]:{p[1]}, p[2]:{p[2]}, p[3]:{p[3]}")
+    if len(p) > 3:
+        print(f"Erro:p[0]:{p[0]}, p[1]:{p[1]}, p[2]:{p[2]}, p[3]:{p[3]}")
+    else:
+        print(f"Erro:p[0]:{p[0]}, p[1]:{p[1]}, p[2]:{p[2]}")
     error_line = p.lineno(2)
     father = MyNode(name=f'ERROR::{error_line}', type='ERROR')
     logging.error(f"Syntax error parsing index rule at line {error_line}")

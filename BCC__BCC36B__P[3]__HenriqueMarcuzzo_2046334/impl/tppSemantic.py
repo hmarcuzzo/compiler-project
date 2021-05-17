@@ -38,19 +38,20 @@ def find_all_parameters_sent(root, escope, list_node):
         elif node.label == 'ID':
             var_name = node.children[0].label
             type_var = ''
-            for var in var_list[var_name]:
-                if var[4] == escope:
-                    type_var = var[1]
-                    break
-
-            if type_var == '':
+            if var_name in var_list:
                 for var in var_list[var_name]:
-                    if var[4] == 'global':
+                    if var[4] == escope:
                         type_var = var[1]
                         break
 
-            list_node.append((var_name, type_var))
-            return list_node
+                if type_var == '':
+                    for var in var_list[var_name]:
+                        if var[4] == 'global':
+                            type_var = var[1]
+                            break
+
+                list_node.append((var_name, type_var))
+                return list_node
         elif node.label == 'numero':
             type_num = node.children[0].label
 
@@ -285,6 +286,12 @@ def check_call_of_all_variables(var_list, message_list, root):
                            f'Aviso: Variável ‘{var[0]}’ declarada e não inicializada. ')
                 message_list.append(message)
 
+            if len(var_list[element]) > 1:
+                for var2 in var_list[element]:
+                    if var2 != var and var2[4] == var[4]:
+                        message = ('WARNING', f'Aviso: Variável ‘{var2[0]}‘ já declarada anteriormente.')
+                        message_list.append(message)
+
 
 def check_all_atribuicao_type(var_list, message_list, root):
     all_atribuicao_node = find_all_nodes(root, 'atribuicao', list())
@@ -301,7 +308,7 @@ def check_all_atribuicao_type(var_list, message_list, root):
 
         diferent_expression_type = False
         for unique_right in right_side:
-            if unique_right[1] != left_side[1]:
+            if unique_right[1] != left_side[1] and unique_right[1] != '':
 
                 diferent_expression_type = unique_right[1]
                 message = ('WARNING',
@@ -329,16 +336,17 @@ def check_all_var_array(var_list, message_list):
                         dimension_number = int(dimension[0])
                 for call in var[-1]:
                     numero = find_all_nodes(call[1].descendants[3], 'numero', list())
-                    if len(find_all_nodes(numero[0], 'NUM_PONTO_FLUTUANTE', list())) > 0:
-                        message = ('ERROR',
-                                   f'Erro: Índice de array ‘{var[0]}’ não inteiro.')
-                        message_list.append(message)
-                    else:
-                        numero = int(numero[0].descendants[-1].label)
-                        if numero > dimension_number - 1:
+                    if len(numero) > 0:
+                        if len(find_all_nodes(numero[0], 'NUM_PONTO_FLUTUANTE', list())) > 0:
                             message = ('ERROR',
-                                       f'Erro: Índice de array ‘{var[0]}’ fora do intervalo (out of range).')
+                                       f'Erro: Índice de array ‘{var[0]}’ não inteiro.')
                             message_list.append(message)
+                        else:
+                            numero = int(numero[0].descendants[-1].label)
+                            if numero > dimension_number - 1:
+                                message = ('ERROR',
+                                           f'Erro: Índice de array ‘{var[0]}’ fora do intervalo (out of range).')
+                                message_list.append(message)
 
 
 def do_all_semantic_check(func_list, var_list, message_list, func_table, var_table, root):
@@ -393,6 +401,37 @@ def ajusta_arvore(root, labels_ajuste):
     dad = root.parent
     aux = []
 
+    if root.label == 'repita' and len(root.children) > 0:
+        for children in root.children:
+            if children.label != 'repita':
+                aux.append(children)
+        root.children = aux
+        aux = []
+
+    if root.label == 'e' and root.children[0].label == '&&':
+        root.children = []
+        root.label = '&&'
+        root.name = '&&'
+
+    if root.label == 'ou' and root.children[0].label == '||':
+        root.children = []
+        root.label = '||'
+        root.name = '||'
+
+
+    if root.label == 'se' and len(root.children) > 0:
+        for children in root.children:
+            if children.label != 'se':
+                aux.append(children)
+
+        root.children = aux
+        aux = []
+
+    if root.label == 'ATE':
+        root.children = []
+        root.label = 'até'
+        root.name = 'até'
+
     if root.label == 'leia' or root.label == 'escreva' or root.label == 'retorna':
         if len(root.children) == 0:
             for children in dad.children:
@@ -401,28 +440,30 @@ def ajusta_arvore(root, labels_ajuste):
 
             dad.children = aux
 
-    if root.label in labels_ajuste:
-        if root.label == ':=':
-            for children in dad.children:
-                if children != root:
-                    aux.append(children)
-
-            root.children = aux
-            dad.children = [root]
-        else:
-            dad_aux = []
-            for index in range(len(dad.children)):
-                if dad.children[index] == root:
-                    aux.append(dad.children[index - 1])
-                    aux.append(dad.children[index + 1])
-
-                    for j in range(len(dad.children)):
-                        if j != index or j != index - 1 or j != index + 1:
-                            dad_aux.append(dad.children[j])
-                        if j == index:
-                            dad_aux.append(root)
-
-            root.children = aux
+    # if root.label in labels_ajuste:
+    #     if root.label == ':=':
+    #         for children in dad.children:
+    #             if children != root:
+    #                 aux.append(children)
+    #
+    #         root.children = aux
+    #         dad.children = [root]
+    #     else:
+    #         dad_aux = []
+    #         for index in range(len(dad.children)):
+    #             if dad.children[index] == root:
+    #                 aux.append(dad.children[index - 1])
+    #                 if len(dad.children) > 1:
+    #                     aux.append(dad.children[index + 1])
+    #
+    #                 for j in range(len(dad.children)):
+    #                     if j != index or j != index - 1 or j != index + 1:
+    #                         dad_aux.append(dad.children[j])
+    #                     if j == index:
+    #                         dad_aux.append(root)
+    #
+    #         if len(dad.children) > 1:
+    #             root.children = aux
 
 
 def main():
@@ -488,7 +529,9 @@ def main():
                         'expressao_unaria', 'inicializacao_variaveis', 'ATRIBUICAO', 'atribuicao',
                         'operador_soma', 'mais', 'chamada_funcao', 'lista_argumentos', 'VIRGULA',
                         'virgula', 'fator', 'cabecalho', 'FIM', 'lista_parametros', 'vazio',
-                        '(', ')', ':', ',', 'RETORNA', 'ESCREVA']
+                        '(', ')', ':', ',', 'RETORNA', 'ESCREVA', 'SE', 'ENTAO', 'SENAO', 'maior',
+                        'menor', 'REPITA', 'igual', 'menos', 'menor_igual', 'maior_igual', 'operador_logico',
+                        'operador_multiplicacao', 'vezes']
     labels_ajuste = [':=', '+', '*', '-', '/']
     poda_arvore(root, label_remove_nodes)
     ajusta_arvore(root, labels_ajuste)
@@ -496,6 +539,8 @@ def main():
     print(f"Poda da árvore gerada\nArquivo de destino: {sys.argv[1]}.cut.unique.ast.png")
     # else:
     #     print(f"Não foi possível gerar a árvore abstrata, devido a erros semânticos")
+
+    return root, message_list, func_list, var_list
 
 
 if __name__ == '__main__':

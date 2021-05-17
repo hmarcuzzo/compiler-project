@@ -4,6 +4,6 @@
 inteiro principal()
 	flutuante: b
 
-	b := a + 1.0
+	b := a+ 1.0
 
 fim
